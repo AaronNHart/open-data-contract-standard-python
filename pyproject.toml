@@ -1,6 +1,6 @@
 [project]
 name = "open-data-contract-standard"
-version = "3.1.2" # in sync with spec
+version = "4.0.0" # major version bump: enforces schema validation
 description = "The Pydantic Model of the Open Data Contract Standard"
 readme = "README.md"
 authors = [
@@ -22,6 +22,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest",
+  "pytest-cov",
+  "pre-commit",
   "ruff",
 ]
 
@@ -35,6 +37,24 @@ line-length = 120
 [tool.ruff.lint]
 extend-select = [
   "I",   # re-order imports in alphabetic order
+]
+
+[tool.pytest.ini_options]
+addopts = [
+  "--cov=src/open_data_contract_standard",
+  "--cov-report=term-missing",
+  "--cov-fail-under=80",
+]
+
+[tool.coverage.run]
+source = ["src/open_data_contract_standard"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
 ]
 
 [build-system]

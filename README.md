@@ -49,11 +49,32 @@ print(data_contract.to_yaml())
 ```
 
 
+## Changes in this fork
+
+This fork tightens schema enforcement so the Pydantic model matches the [ODCS JSON schema](src/open_data_contract_standard/schema.json) more strictly. Loading a contract that violates the schema now raises `ValidationError` instead of silently accepting it.
+
+Highlights:
+
+- **Required fields enforced**: `version`, `apiVersion`, `kind`, `id`, `status` at the top level; `name` on schema objects/properties; `username`, `role`, `channel`, `property`/`value`, `url`/`type` on their respective models.
+- **Enums enforced**: `kind`, `apiVersion`, `status`, `Server.type`, `DataQuality.type`/`dimension`/`severity`, `Support.tool`/`scope`, `Relationship.type`, `AuthoritativeDefinition.type`, etc.
+- **Server type-specific validation**: each `Server.type` (e.g. `bigquery`, `snowflake`, `kafka`) requires its mandatory fields and rejects fields that don't belong to that type per the schema's `unevaluatedProperties: false`.
+- **DataQuality type-specific validation**: `library` requires `metric`, `sql` requires `query`, `custom` requires `engine`/`implementation`. Comparison operators (`mustBe`, `mustBeGreaterThan`, ...) are mutually exclusive and only allowed where the schema permits them. `mustBeBetween`/`mustNotBeBetween` must contain unique values.
+- **SchemaProperty constraints**: `items` only valid when `logicalType: array`; `properties` only valid when `logicalType: object`. `logicalTypeOptions` keys are validated against the logical type, with `minLength`/`maxLength`/`minItems`/etc. required to be non-negative and `multipleOf` strictly positive. Schema defaults are applied (`primaryKey`/`required`/`unique`/`partitioned`/`criticalDataElement` default to `False`; `primaryKeyPosition`/`partitionKeyPosition` default to `-1`).
+- **Relationship constraints**: `to` is required; `type` defaults to `foreignKey` and only accepts `foreignKey`; composite keys must be matching arrays of equal length.
+- **Pattern validations**: `id` fields match the `StableId` pattern; relationship `from`/`to` match shorthand or fully-qualified reference patterns; `dateIn`/`dateOut` are `YYYY-MM-DD`; `contractCreatedTs` accepts full ISO-8601 (`Z`, timezone offsets, optional milliseconds).
+- **`SchemaItemProperty`**: a new class used for array `items`, where `name` is optional (per the schema's `SchemaItemProperty` definition).
+- **Strict extras**: every model uses `extra='forbid'`, so unknown fields are rejected.
+
+These changes are a **breaking change** relative to earlier versions of the package, hence the major version bump to 4.x. Contracts that previously round-tripped silently may now fail validation; the failures point at real schema violations.
+
 ## Development
 
 ```
 uv sync --all-extras
+pre-commit install
 ```
+
+Tests must keep coverage at 80% or higher (`pytest --cov-fail-under=80`).
 
 ## Release
 
